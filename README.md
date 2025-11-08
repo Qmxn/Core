@@ -3,8 +3,6 @@
 
 注册地址：https://www.netlib.re
 
-视频教程地址：https://youtu.be/7laVmEfgC9o
-
 
 ### 功能特点
 - 🔐 自动登录 Netlib 账户(单账户或多账户)
