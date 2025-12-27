@@ -3,7 +3,6 @@ name: Fork
 on:
   workflow_dispatch:
 
-# 必须加，否则 GITHUB_TOKEN 可能没有 push 权限
 permissions:
   contents: write
 
@@ -14,53 +13,29 @@ jobs:
       TZ: Asia/Shanghai
 
     steps:
-    # 1️⃣ 检出你自己的仓库（X 分支）
-    - name: Checkout target repository
+    - name: Checkout
       uses: actions/checkout@v4
       with:
         ref: X
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # 2️⃣ 克隆上游仓库并同步内容
     - name: Sync from upstream
       run: |
-        set -e
-
-        # 上游仓库地址
-        UPSTREAM_REPO="https://github.com/shiteThings/Cloudflare-Navihive.git"
-
-        # 克隆上游
-        git clone "$UPSTREAM_REPO" tmp
-
-        # 防止覆盖你自己的 workflow
+        git clone https://github.com/shiteThings/Cloudflare-Navihive.git tmp
         rm -rf tmp/.github/workflows
-
-        # 使用 rsync 同步（忽略 code 24 的“文件消失”警告）
         rsync -av --delete tmp/ ./ \
           --exclude .git \
           --exclude .github/workflows || true
-
-        # 清理临时目录
         rm -rf tmp
 
-    # 3️⃣ 提交并强制推送到 X 分支
     - name: Commit and Push
       run: |
         if [[ -n "$(git status -s)" ]]; then
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-
           git add -A
-          git commit -m "Auto Sync $(date +'%Y-%m-%d %H:%M')"
-
+          git commit -m "Auto Sync"
           git push --force origin X
         else
-          echo "No changes to commit."
+          echo "No changes"
         fi
-
-    # 4️⃣ 清理历史 workflow 运行记录（可选）
-    - name: Cleanup Workflow Runs
-      uses: Mattraks/delete-workflow-runs@main
-      with:
-        retain_days: 0
-        keep_minimum_runs: 2
