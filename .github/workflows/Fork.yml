@@ -3,9 +3,10 @@ name: Fork
 on:
   workflow_dispatch:
 
-# 核心修复 1: 显式声明写权限
+# 必须显式开启写权限
 permissions:
   contents: write
+  actions: write
 
 jobs:
   Fork:
@@ -19,55 +20,55 @@ jobs:
         with:
           ref: X 
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0 # 获取完整历史，防止 push 冲突
+          fetch-depth: 0 # 保证获取完整历史
 
-      - name: Clone and Sync
+      - name: Sync Files
         run: |
-          # 核心修复 2: 确保 #### 替换成了真实的仓库地址
+          # 设定目标仓库
           repo_url="https://github.com/shiteThings/Cloudflare-Navihive.git"
           
-          echo "开始克隆目标仓库..."
-          git clone "$repo_url" tmpfile
+          echo "Cloning source repository..."
+          git clone --depth 1 "$repo_url" tmp_source
 
-          # 检查克隆是否成功
-          if [ ! -d "tmpfile" ]; then
-            echo "错误: 克隆目标仓库失败！"
+          # 确保克隆成功
+          if [ ! -d "tmp_source" ]; then
+            echo "Error: Failed to clone the source repository."
             exit 1
           fi
 
-          # 删除目标仓库的 git 记录和 workflow 配置
-          rm -rf tmpfile/.git
-          rm -rf tmpfile/.github/workflows
+          # 移除不需要同步的 Git 记录和 Workflow 定义
+          rm -rf tmp_source/.git
+          rm -rf tmp_source/.github/workflows
 
-          # 核心修复 3: 使用更可靠的同步方式
-          # 用 rsync 或简单的 cp 同步，这里排除掉 tmpfile 自身
-          cp -rn tmpfile/* . 2>/dev/null || true
-          cp -rn tmpfile/.[^.]* . 2>/dev/null || true
-
-          rm -rf tmpfile
+          # 使用 rsync (更可靠) 或改进后的 cp 同步文件
+          # . 表示当前目录（即你的 X 分支根目录）
+          echo "Copying files..."
+          cp -rf tmp_source/. . 
+          
+          # 清理临时文件夹
+          rm -rf tmp_source
 
       - name: Add and Commit
         run: |
-          # 设置用户信息
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # 检查状态
-          git status
+          # 调试：查看当前目录下有哪些文件，确保同步成功
+          ls -la
           
+          # 检查是否有变动
           if [[ -n $(git status -s) ]]; then
             git add -A
             git commit -m "Auto Update $(date +'%Y-%m-%d %H:%M')"
             
-            # 这里的 origin 已经是当前运行 action 的仓库
-            # 强制推送到分支 X
+            # 使用 HEAD 推送到 X 分支
             git push --force origin HEAD:X
           else
-            echo "没有发现任何文件变动。"
+            echo "No changes detected. Skipping push."
           fi
 
       - name: Cleanup Workflow
-        uses: Mattraks/delete-workflow-runs@v2 # 建议使用稳定版本号
+        uses: Mattraks/delete-workflow-runs@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
