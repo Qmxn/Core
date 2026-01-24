@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout target repository
-        uses: actions/checkout@v6.0.1
+        uses: actions/checkout@v6.0.2
         with:
           ref: X 
           token: ${{ secrets.GITHUB_TOKEN }}
